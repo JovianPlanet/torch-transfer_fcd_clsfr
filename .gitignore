@@ -1,0 +1,10 @@
+*.csv
+*.pyc
+*.log
+*.pth
+*.txt
+**/__pycache__
+**/data
+**/outs
+**/predictions
+test_dl.py
