@@ -20,12 +20,11 @@ def train(config):
     torch.cuda.empty_cache()
 
     start_time = datetime.now()
+
     print(f'\nHora de inicio: {start_time}')
-
-    print(f"\nNum epochs = {config['hyperparams']['epochs']}, batch size = {config['hyperparams']['batch_size']}, \
-        Learning rate = {config['hyperparams']['lr']}\n")
-
-    print(f"Model file name = {config['files']['model']}\n")
+    print(f"\nEpocas = {config['hyperparams']['epochs']}, batch size = {config['hyperparams']['batch_size']}")
+    print(f"Learning rate = {config['hyperparams']['lr']}\n")
+    print(f"Nombre de archivo del modelo: {config['files']['model']}\n")
 
     # Crear datasets #
     ds_train = Unet2D_DS(config, 'train', cropds=config['hyperparams']['crop'])
@@ -78,19 +77,19 @@ def train(config):
     }
 
     optimizer = Adam(cnn.parameters(), lr=config['hyperparams']['lr'])
-    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.5, total_iters=4)
+    scheduler = lr_scheduler.LinearLR(optimizer, start_factor=1.0, end_factor=0.1, total_iters=7)
 
-    t_acc = BinaryAccuracy().to(device, dtype=torch.double)
-    t_pre = BinaryPrecision().to(device, dtype=torch.double)
-    t_spe = BinarySpecificity().to(device, dtype=torch.double)
-    t_f1s = BinaryF1Score().to(device, dtype=torch.double)
-    t_rec = BinaryRecall().to(device, dtype=torch.double) # Sensibilidad
+    t_acc = BinaryAccuracy(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    t_pre = BinaryPrecision(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    t_spe = BinarySpecificity(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    t_f1s = BinaryF1Score(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    t_rec = BinaryRecall(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double) # Sensibilidad
 
-    v_acc = BinaryAccuracy().to(device, dtype=torch.double)
-    v_pre = BinaryPrecision().to(device, dtype=torch.double)
-    v_spe = BinarySpecificity().to(device, dtype=torch.double)
-    v_f1s = BinaryF1Score().to(device, dtype=torch.double)
-    v_rec = BinaryRecall().to(device, dtype=torch.double) # Sensibilidad
+    v_acc = BinaryAccuracy(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    v_pre = BinaryPrecision(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    v_spe = BinarySpecificity(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    v_f1s = BinaryF1Score(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double)
+    v_rec = BinaryRecall(threshold=config['hyperparams']['thres']).to(device, dtype=torch.double) # Sensibilidad
 
     conf_txt(config)
     cnnsummary_txt(config, str(summary(cnn)))
@@ -101,8 +100,8 @@ def train(config):
     best_acc = None
 
     losses = []
-    train_accs = []
-    val_accs = []
+    train_metrics = []
+    val_metrics = []
 
     for epoch in tqdm(range(config['hyperparams']['epochs'])):  # loop over the dataset multiple times
 
@@ -131,19 +130,25 @@ def train(config):
             losses.append([epoch, i, loss.item()])
 
             '''Metricas''' 
-            train_accs.append([epoch, i, t_acc.forward(outputs, labels.unsqueeze(1))])
-            t_pre.update(outputs, labels.unsqueeze(1))
-            t_spe.update(outputs, labels.unsqueeze(1))
-            t_f1s.update(outputs, labels.unsqueeze(1))
-            t_rec.update(outputs, labels.unsqueeze(1)) # Sensibilidad
+            train_metrics.append([epoch, 
+                                  i, 
+                                  t_acc.forward(outputs, labels.unsqueeze(1)).item(),
+                                  t_pre.forward(outputs, labels.unsqueeze(1)).item(),
+                                  t_spe.forward(outputs, labels.unsqueeze(1)).item(),
+                                  t_f1s.forward(outputs, labels.unsqueeze(1)).item(),
+                                  t_rec.forward(outputs, labels.unsqueeze(1)).item(),]
+            )
             '''Fin metricas'''
 
             if (i+1) % 10 == 0: 
-                print(f'Batch No. {i+1}')
-                print(f'Loss = {running_loss/(i+1):.3f}')
-                print(f'Accuracy (prom) = {t_acc.compute():.3f}')
-                print(f'Precision (prom) = {t_pre.compute():.3f}, Especificidad = {t_spe.compute():.3f}')
-                print(f'F1 Score (prom) = {t_f1s.compute():.3f}, Sensibilidad = {t_rec.compute():.3f}')
+
+                print(f'\nMetricas promedio. Batch No. {i+1}')
+                print(f'Loss          = {running_loss/(i+1):.3f}')
+                print(f'Accuracy      = {t_acc.compute():.3f}')
+                print(f'Precision     = {t_pre.compute():.3f}') 
+                print(f'Especificidad = {t_spe.compute():.3f}')
+                print(f'F1 Score      = {t_f1s.compute():.3f}')
+                print(f'Sensibilidad  = {t_rec.compute():.3f}')
 
 
         before_lr = optimizer.param_groups[0]["lr"]
@@ -163,24 +168,26 @@ def train(config):
                 y = y.to(device, dtype=torch.double)
 
                 outs  = cnn(x)
-                #probs = nn.Softmax(dim=1) # Softmax para multiclase
-                #probs = nn.Sigmoid()       # Sigmoid para biclase
-                #pval  = probs(outs) 
-                #preds = torch.where(pval>config['hyperparams']['thres'], 1., 0.)
-                #preds = torch.argmax(pval, dim=1)
 
                 '''Metricas''' 
-                val_accs.append([epoch, j, v_acc.forward(outs, y.unsqueeze(1))])
-                v_pre.update(outs, y.unsqueeze(1))
-                v_spe.update(outs, y.unsqueeze(1))
-                v_f1s.update(outs, y.unsqueeze(1))
-                v_rec.update(outs, y.unsqueeze(1)) # Sensibilidad
+                val_metrics.append([epoch, 
+                                    j, 
+                                    v_acc.forward(outs, y.unsqueeze(1)).item(),
+                                    v_pre.forward(outs, y.unsqueeze(1)).item(),
+                                    v_spe.forward(outs, y.unsqueeze(1)).item(),
+                                    v_f1s.forward(outs, y.unsqueeze(1)).item(),
+                                    v_rec.forward(outs, y.unsqueeze(1)).item()]
+                )
                 '''Fin metricas'''
 
                 if (j+1) % 10 == 0: 
-                    print(f'Accuracy promedio hasta batch No. {j+1} = {v_acc.compute():.3f}')
-                    print(f'Precision (prom) = {v_pre.compute():.3f}, Especificidad = {v_spe.compute():.3f}')
-                    print(f'F1 Score (prom) = {v_f1s.compute():.3f}, Sensibilidad = {v_rec.compute():.3f}')
+
+                    print(f'\nMetricas promedio hasta el batch No. {j+1}:')
+                    print(f'Accuracy      = {v_acc.compute():.3f}')
+                    print(f'Precision     = {v_pre.compute():.3f}') 
+                    print(f'Especificidad = {v_spe.compute():.3f}')
+                    print(f'F1 Score      = {v_f1s.compute():.3f}') 
+                    print(f'Sensibilidad  = {v_rec.compute():.3f}\n')
 
                 # if (j+1) % 16 == 0:
                 #     if torch.any(y):
@@ -203,16 +210,13 @@ def train(config):
             best_loss = epoch_loss
             best_ep_loss = epoch + 1
 
-        print(f'\nEpoch Metrics (Training):')
-        print(f'Loss = {epoch_loss:.3f}, Best loss = {best_loss:.3f} (epoca {best_ep_loss})')
-        print(f'Accuracy = {t_acc.compute():.3f}')
-        print(f'Precision = {t_pre.compute():.3f}, Especificidad = {t_spe.compute():.3f}')
-        print(f'F1 Score = {t_f1s.compute():.3f}, Sensibilidad = {t_rec.compute():.3f}\n')
-
-        # if epoch_val_dice > best_dice:
-        #     best_dice = epoch_val_dice
-        #     best_epoch_dice = epoch + 1
-        #     #print(f'\nUpdated weights file!')
+        print(f'\nMetricas promedio de la epoca (Training):')
+        print(f'Loss          = {epoch_loss:.3f}, Best loss = {best_loss:.3f} (epoca {best_ep_loss})')
+        print(f'Accuracy      = {t_acc.compute():.3f}')
+        print(f'Precision     = {t_pre.compute():.3f}')
+        print(f'Especificidad = {t_spe.compute():.3f}')
+        print(f'F1 Score      = {t_f1s.compute():.3f}')
+        print(f'Sensibilidad  = {t_rec.compute():.3f}\n')
 
         if ep_val_acc > best_acc:
             best_acc = ep_val_acc
@@ -224,31 +228,39 @@ def train(config):
         print(f'Accuracy = {ep_val_acc:.3f}, Best accuracy = {best_acc:.3f} (epoca {best_ep_acc})')
         print(f'Precision = {v_pre.compute():.3f}, Especificidad = {v_spe.compute():.3f}')
         print(f'F1 Score = {v_f1s.compute():.3f}, Sensibilidad = {v_rec.compute():.3f}\n')
+
+        print(f'\nMetricas promedio de la epoca (Validacion):')
+        print(f'Accuracy      = {ep_val_acc:.3f}, Best accuracy = {best_acc:.3f} (epoca {best_ep_acc})')
+        print(f'Precision     = {v_pre.compute():.3f}')
+        print(f'Especificidad = {v_spe.compute():.3f}')
+        print(f'F1 Score      = {v_f1s.compute():.3f}')
+        print(f'Sensibilidad  = {v_rec.compute():.3f}\n')
+
         print(f'lr = {before_lr} -> {after_lr}\n')
 
         t_acc.reset()
         t_pre.reset()
         t_spe.reset()
         t_f1s.reset()
-        t_rec.reset() # Sensibilidad
+        t_rec.reset() 
 
         v_acc.reset()
         v_pre.reset()
         v_spe.reset()
         v_f1s.reset()
-        v_rec.reset() # Sensibilidad
+        v_rec.reset() 
 
     df_loss = pd.DataFrame(losses, columns=['Epoca', 'Batch', 'Loss'])
     df_loss = df_loss.assign(id=df_loss.index.values)
     df_loss.to_csv(config['files']['losses'])
 
-    df_train_acc = pd.DataFrame(train_accs, columns=['Epoca', 'Batch', 'Accuracy'])
-    df_train_acc = df_train_acc.assign(id=df_train_acc.index.values)
-    df_train_acc.to_csv(config['files']['t_accus'])
+    df_train = pd.DataFrame(train_metrics, columns=['Epoca', 'Batch', 'Accuracy', 'Precision', 'Specificity', 'F1Score', 'Recall'])
+    df_train = df_train.assign(id=df_train.index.values)
+    df_train.to_csv(config['files']['t_mets'])
 
-    df_val_acc = pd.DataFrame(val_accs, columns=['Epoca', 'Batch', 'Accuracy'])
-    df_val_acc = df_val_acc.assign(id=df_val_acc.index.values)
-    df_val_acc.to_csv(config['files']['v_accus'])
+    df_val = pd.DataFrame(val_metrics, columns=['Epoca', 'Batch', 'Accuracy', 'Precision', 'Specificity', 'F1Score', 'Recall'])
+    df_val = df_val.assign(id=df_val.index.values)
+    df_val.to_csv(config['files']['v_mets'])
 
     print(f'\nFinished training. Total training time: {datetime.now() - start_time}\n')
 
