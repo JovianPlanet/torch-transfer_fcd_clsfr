@@ -34,7 +34,7 @@ def test(config):
 
     metrics = []
 
-    # since we're not training, we don't need to calculate the gradients for our outputs
+    # Freeze gradients
     with torch.no_grad():
         cnn.eval()
         for i, data in enumerate(test_mris):

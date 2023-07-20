@@ -47,19 +47,21 @@ def get_parameters(mode):
 
     folder = './outs/Ex-' + datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
 
-    Path(folder).mkdir(parents=True, exist_ok=True)
-
     if mode == 'train':
+
+        Path(folder).mkdir(parents=True, exist_ok=True)
 
         files = {'model' : os.path.join(folder, 'weights'),
                  'losses': os.path.join(folder, 'losses.csv'),
                  't_mets': os.path.join(folder, 'train_metrics.csv'),
                  'v_mets': os.path.join(folder, 'val_metrics.csv'),
                  'params': os.path.join(folder, 'params.txt'),
-                 'summary': os.path.join(folder, 'cnn_summary.txt')}
+                 'summary': os.path.join(folder, 'cnn_summary.txt'),
+                 'log'    : os.path.join(folder, 'train.log')}
 
         # Modelo preentrenado en segmentacion de tumores
-        PATH_PRETRAINED_MODEL = './pretrained/weights-BCELog-20_eps-100_heads-2023-07-11-_nobn-e19.pth'
+        #PATH_PRETRAINED_MODEL = './pretrained/weights-BCELog-20_eps-100_heads-2023-07-11-_nobn-e19.pth'
+        PATH_PRETRAINED_MODEL ='./pretrained/Ex-2023-07-16-01-29-47weights-e14.pth'
 
         return {'mode'        : mode,
                 'data'        : datasets,
@@ -71,17 +73,19 @@ def get_parameters(mode):
     elif mode == 'test':
 
         # En este archivo se guarda el modelo de segmentacion de FCD por transfer learning
-        PATH_TRAINED_MODEL = './outs/Ex-2023-07-15-01-41-42/weights-e20.pth'
+        #PATH_TRAINED_MODEL = './outs/Ex-2023-07-15-01-41-42/weights-e20.pth'
+        PATH_TRAINED_MODEL = './outs/Ex-2023-07-17-15-09-21/weights-e14.pth'
 
         # CSV con resultados de Dice en test del modelo de segmentacion de FCD
-        PATH_TEST_DICES = './outs/Ex-2023-07-15-01-41-42/test_metrics.csv' # CSV con resultados de Dice en test
+        #PATH_TEST_METS = './outs/Ex-2023-07-15-01-41-42/test_metrics.csv' # CSV con resultados de Dice en test
+        PATH_TEST_METS = './outs/Ex-2023-07-17-15-09-21/test_metrics.csv' # 
 
         return {'mode'       : mode,
                 'data'       : datasets,
                 'hyperparams': hyperparams,
                 'labels'     : labels,
                 'weights'    : PATH_TRAINED_MODEL,
-                'test_fn'    : PATH_TEST_DICES,
+                'test_fn'    : PATH_TEST_METS,
         }
 
     elif mode == 'assess':

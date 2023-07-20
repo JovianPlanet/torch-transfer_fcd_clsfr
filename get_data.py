@@ -6,7 +6,7 @@ import nibabel as nib
 import nibabel.processing
 
 
-class Unet2D_DS(Dataset):
+class Cnn2D_Ds(Dataset):
 
     def __init__(self, config, mode, cropds=False):
 
@@ -47,8 +47,8 @@ class Unet2D_DS(Dataset):
                     if np.any(head[:, :, slice_]):
                         self.L.append([subject, slice_, mri_path, 1])
                         if slice_ > 5 and a:
-                            self.L.append([subject, slice_-1, mri_path, 0])
-                            self.L.append([subject, slice_-2, mri_path, 0])
+                            # self.L.append([subject, slice_-1, mri_path, 0])
+                            # self.L.append([subject, slice_-2, mri_path, 0])
                             self.L.append([subject, slice_-3, mri_path, 0])
                             self.L.append([subject, slice_-4, mri_path, 0])
                             self.L.append([subject, slice_-5, mri_path, 0])

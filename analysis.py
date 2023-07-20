@@ -26,6 +26,9 @@ def assess(config):
 
     plt.scatter(range(20), mean_mets, marker='o')
     plt.title('Accuracy promedio (train)')
+    ylabel
+    xlabel
+    swarmplot
     plt.xticks(np.arange(0, 20, step=1))
     plt.show()
 

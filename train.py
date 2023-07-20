@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -10,12 +11,15 @@ import torch.optim.lr_scheduler as lr_scheduler
 from torchmetrics.classification import BinaryAccuracy, BinaryPrecision, BinarySpecificity, BinaryF1Score, BinaryRecall
 from tqdm import tqdm
 
-from cnn import CNN2D
-from get_data import Unet2D_DS
+from cnn import Cnn2D
+from get_data import Cnn2D_Ds
 from utils.write_params import conf_txt, cnnsummary_txt
 
 
 def train(config):
+
+    # f = open(config['files']['log'], 'w')
+    # sys.stdout = f
 
     torch.cuda.empty_cache()
 
@@ -27,8 +31,8 @@ def train(config):
     print(f"Nombre de archivo del modelo: {config['files']['model']}\n")
 
     # Crear datasets #
-    ds_train = Unet2D_DS(config, 'train', cropds=config['hyperparams']['crop'])
-    ds_val   = Unet2D_DS(config, 'val')
+    ds_train = Cnn2D_Ds(config, 'train', cropds=config['hyperparams']['crop'])
+    ds_val   = Cnn2D_Ds(config, 'val')
 
     train_dl = DataLoader(
         ds_train,  
@@ -39,6 +43,7 @@ def train(config):
     val_dl = DataLoader(
         ds_val, 
         batch_size=config['hyperparams']['batch_size'],
+        shuffle=True,
     )
 
     print(f'Tamano del dataset de entrenamiento: {len(ds_train)} slices')
@@ -47,7 +52,7 @@ def train(config):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using {device} device")
 
-    cnn = CNN2D(1, config['hyperparams']['nclasses']).to(device, dtype=torch.double)
+    cnn = Cnn2D(1, config['hyperparams']['nclasses']).to(device, dtype=torch.double)
     #print(torch.cuda.memory_summary(device=device, abbreviated=False))
 
     # Se carga el modelo preentrenado
@@ -224,11 +229,6 @@ def train(config):
         
         torch.save(cnn.state_dict(), config['files']['model']+f'-e{epoch+1}.pth')
 
-        print(f'\nEpoch Metrics (Validation):')
-        print(f'Accuracy = {ep_val_acc:.3f}, Best accuracy = {best_acc:.3f} (epoca {best_ep_acc})')
-        print(f'Precision = {v_pre.compute():.3f}, Especificidad = {v_spe.compute():.3f}')
-        print(f'F1 Score = {v_f1s.compute():.3f}, Sensibilidad = {v_rec.compute():.3f}\n')
-
         print(f'\nMetricas promedio de la epoca (Validacion):')
         print(f'Accuracy      = {ep_val_acc:.3f}, Best accuracy = {best_acc:.3f} (epoca {best_ep_acc})')
         print(f'Precision     = {v_pre.compute():.3f}')
@@ -263,5 +263,7 @@ def train(config):
     df_val.to_csv(config['files']['v_mets'])
 
     print(f'\nFinished training. Total training time: {datetime.now() - start_time}\n')
+
+    #f.close()
 
 

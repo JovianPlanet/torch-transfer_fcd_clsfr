@@ -2,11 +2,11 @@ import torch
 from torch import nn
 
 
-class CNN2D(nn.Module):
+class Cnn2D(nn.Module):
 
     def __init__(self, in_channels, classes, start_filters=16):
         # call the parent constructor
-        super(CNN2D, self).__init__()
+        super(Cnn2D, self).__init__()
 
         # initialize first set of CONV => RELU => POOL layers
         self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=start_filters, kernel_size=3)
