@@ -1,8 +1,16 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 
 def assess(config):
+
+    tr = {'Accuracy'   : 'Exactitud', 
+          'Precision'  : 'Precisión', 
+          'Specificity': 'Especificidad', 
+          'Recall'     : 'Sensibilidad'
+    }
 
     print(f"\nAnalisis del modelo: {config['files']['train_Loss']}\n")
 
@@ -14,43 +22,83 @@ def assess(config):
     mean_losses = df_loss.groupby("Epoca")["Loss"].mean()
     print(f'Average loss last training epoch = {mean_losses[19]:.3f}\n')
 
-    # plt.scatter(range(20), mean_losses, marker='o')
-    # plt.title('Función de costo: Entropía cruzada binaria\nÉpoca Vs. Costo')
-    # plt.show()
-    #plt.imsave()
+    plt.plot(range(1, 21), mean_losses, marker='o')
+    plt.title('Función de costo: Entropía cruzada binaria\nÉpoca Vs. Costo')
+    plt.xticks(np.arange(1, 21, step=1))
+    plt.xlabel(f'Epoca')
+    plt.ylabel(f'BCE')
+    #plt.show()
+    plt.savefig(os.path.join(config['plots'], 'loss_plot.pdf'), dpi=300, format='pdf')
+
+    plt.close('all')
 
     # fixCSV(config)
 
-    mean_mets = df_train.groupby("Epoca")["Accuracy"].mean()
-    print(f'Average Accuracy (Train) = {mean_mets[19]:.3f}')
+    print(f'\nEntrenamiento\n')
 
-    plt.scatter(range(20), mean_mets, marker='o')
-    plt.title('Accuracy promedio (train)')
-    ylabel
-    xlabel
-    swarmplot
-    plt.xticks(np.arange(0, 20, step=1))
-    plt.show()
+    mets = list(df_train.columns.values)[2:-1]
+
+    for col in mets:
+
+        if 'F1Score' in col:
+            continue
+
+        mean_mets = df_train.groupby("Epoca")[col].mean()
+        print(f'Average {tr[col]} (Train) = {mean_mets[19]:.3f}')
+
+        plt.plot(range(1, 21), mean_mets, marker='o', label=tr[col])
+
+    plt.title(f'Métricas promedio (Entrenamiento)')
+    plt.xticks(np.arange(1, 21, step=1))
+    plt.xlabel(f'Época')
+    plt.ylabel(f'Valor')
+    plt.legend(title='Métricas:')
+    plt.savefig(os.path.join(config['plots'], f'train_metrics.pdf'), dpi=300, format='pdf')
+
+    plt.close('all')
 
     #fixCSV(config['files']['val_mets'])
 
-    mean_mets = df_val["Accuracy"].mean()
-    print(f'Average Accuracy (Eval) = {mean_mets:.3f}')
+    print(f'\nValidacion\n')
 
-    acxep = df_train.groupby("Epoca")["Accuracy"].mean()
-    plt.scatter(range(len(acxep)), acxep, marker='o')
-    plt.title('Accuracy promedio (Eval)')
-    #plt.xticks(np.arange(0, 20, step=1))
-    plt.show()
+    for col in mets:
 
-    cols = df_test.columns.values.tolist()
+        if 'F1Score' in col:
+            continue
 
-    for c in cols[2:-1]:
-        #mexep = df_test.groupby("Epoca")[c].mean()
-        plt.scatter(range(len(df_test[c])), df_test[c], marker='o')
-        plt.title(f'{c} promedio (Eval)')
-        #plt.xticks(np.arange(0, 20, step=1))
-        plt.show()
+        mean_mets = df_val.groupby("Epoca")[col].mean()
+        print(f'Average {tr[col]} (Validación) = {mean_mets[19]:.3f}')
+
+        plt.plot(range(1, 21), mean_mets, marker='o', label=tr[col])
+
+    plt.title(f'Métricas promedio (Validación)')
+    plt.xticks(np.arange(1, 21, step=1))
+    plt.yticks(np.arange(1.1, step=0.1))
+    plt.xlabel(f'Época')
+    plt.ylabel(f'Valor')
+    plt.legend(title='Métricas:')
+    plt.savefig(os.path.join(config['plots'], f'val_metrics.pdf'), dpi=300, format='pdf')
+
+    plt.close('all')
+
+    print(f'\nPrueba\n')
+
+    print(df_test.columns.values)
+
+    mets = list(df_test.columns.values)[1:-1]
+
+    df_melted = pd.melt(df_test, id_vars=['Batch'], value_vars=mets)
+
+    for col in mets:
+
+        if 'F1Score' in col:
+            continue
+
+        mean_mets = df_test[col].mean()
+        print(f'Average {tr[col]} (Prueba) = {mean_mets:.3f}')
+
+    # sns.boxplot(data=df_test['Accuracy'])#, x="Batch", y="value", hue="variable")
+    # plt.show()
 
 
 def fixCSV(path):

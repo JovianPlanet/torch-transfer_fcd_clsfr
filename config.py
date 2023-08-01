@@ -59,7 +59,6 @@ def get_parameters(mode):
                  'summary': os.path.join(folder, 'cnn_summary.txt'),
                  'log'    : os.path.join(folder, 'train.log')}
 
-        # Modelo preentrenado en segmentacion de tumores
         #PATH_PRETRAINED_MODEL = './pretrained/weights-BCELog-20_eps-100_heads-2023-07-11-_nobn-e19.pth'
         PATH_PRETRAINED_MODEL ='./pretrained/Ex-2023-07-16-01-29-47weights-e14.pth'
 
@@ -72,13 +71,11 @@ def get_parameters(mode):
 
     elif mode == 'test':
 
-        # En este archivo se guarda el modelo de segmentacion de FCD por transfer learning
-        #PATH_TRAINED_MODEL = './outs/Ex-2023-07-15-01-41-42/weights-e20.pth'
-        PATH_TRAINED_MODEL = './outs/Ex-2023-07-17-15-09-21/weights-e14.pth'
+        ex = 'Ex-2023-07-17-15-09-21'
+        mo = 'weights-e15.pth'
 
-        # CSV con resultados de Dice en test del modelo de segmentacion de FCD
-        #PATH_TEST_METS = './outs/Ex-2023-07-15-01-41-42/test_metrics.csv' # CSV con resultados de Dice en test
-        PATH_TEST_METS = './outs/Ex-2023-07-17-15-09-21/test_metrics.csv' # 
+        PATH_TRAINED_MODEL = os.path.join('./outs', ex, mo) 
+        PATH_TEST_METS = os.path.join('./outs', ex, mo+'-test_metrics.csv')
 
         return {'mode'       : mode,
                 'data'       : datasets,
@@ -90,18 +87,26 @@ def get_parameters(mode):
 
     elif mode == 'assess':
 
-        train_losses = './outs/Ex-2023-07-15-01-41-42/losses.csv'
-        train_metrics  = './outs/Ex-2023-07-15-01-41-42/t-accs.csv'
-        val_metrics  = './outs/Ex-2023-07-15-01-41-42/v-accs.csv'
-        test_metrics   = './outs/Ex-2023-07-15-01-41-42/test_metrics.csv'
+        ex = 'Ex-2023-07-17-15-09-21' 
+        mo = 'weights-e15.pth'
+
+        plots_folder = os.path.join('./outs', ex, 'plots'+mo[:-4])
+
+        Path(plots_folder).mkdir(parents=True, exist_ok=True)
+
+        train_losses = os.path.join('./outs', ex, 'losses.csv')
+        train_metrics  = os.path.join('./outs', ex, 'train_metrics.csv')
+        val_metrics  = os.path.join('./outs', ex, 'val_metrics.csv')
+        test_metrics   = os.path.join('./outs', ex, mo+'-test_metrics.csv')
 
         files = {'train_Loss': train_losses,
                  'train_mets': train_metrics,
                  'val_mets'  : val_metrics,
-                 'test_mets' : test_metrics
-                }
+                 'test_mets' : test_metrics,
+        }
 
         return {'mode'     : mode,
                 'labels'   : labels,
-                'files'    : files
-                }
+                'files'    : files,
+                'plots'    : plots_folder,
+        }
