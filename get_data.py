@@ -45,19 +45,19 @@ class Cnn2D_Ds(Dataset):
                 if self.cropds:
                 
                     if np.any(head[:, :, slice_]):
-                        self.L.append([subject, slice_, mri_path, 1])
+                        self.L.append([subject, slice_, mri_path, 1.])
                         if slice_ > 5 and a:
                             # self.L.append([subject, slice_-1, mri_path, 0])
                             # self.L.append([subject, slice_-2, mri_path, 0])
-                            self.L.append([subject, slice_-3, mri_path, 0])
-                            self.L.append([subject, slice_-4, mri_path, 0])
-                            self.L.append([subject, slice_-5, mri_path, 0])
+                            self.L.append([subject, slice_-3, mri_path, 0.])
+                            self.L.append([subject, slice_-4, mri_path, 0.])
+                            self.L.append([subject, slice_-5, mri_path, 0.])
                             a = False
                 else:
                     if np.any(head[:, :, slice_]):
-                        self.L.append([subject, slice_, mri_path, 1])
+                        self.L.append([subject, slice_, mri_path, 1.])
                     else:
-                        self.L.append([subject, slice_, mri_path, 0])
+                        self.L.append([subject, slice_, mri_path, 0.])
 
         self.df = pd.DataFrame(self.L, columns=['Subject', 'Slice', 'Path MRI', 'Label'])
         self.df = self.df.assign(id=self.df.index.values).sample(frac=1)
